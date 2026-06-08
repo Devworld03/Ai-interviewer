@@ -110,29 +110,80 @@ def evaluate_response(
     """
 
     ideal_points = question.get("ideal_answer_points", [])
-    
-    prompt = f"""You are evaluating a job interview response.
+    question_type = question.get("type", "general")
 
+    # Build last 3 exchanges from history for context
+    recent_history = ""
+    if conversation_history:
+        recent = conversation_history[-6:]  # last 3 exchanges (user+assistant pairs)
+        for msg in recent:
+            role = "Interviewer" if msg["role"] == "assistant" else "Candidate"
+            recent_history += f"{role}: {msg['content']}\n"
+
+    # STAR enforcement note for behavioral questions
+    star_note = ""
+    if question_type == "behavioral":
+        star_note = """
+This is a BEHAVIORAL question. Check if the candidate used the STAR method:
+- Situation: Did they set the context?
+- Task: Did they explain their responsibility?
+- Action: Did they describe specific actions THEY took?
+- Result: Did they share a measurable outcome?
+If STAR method is missing or incomplete, set probe_deeper=true and ask them to structure their answer better.
+"""
+
+    prompt = f"""You are a strict but fair technical interviewer named Alex evaluating a job interview response.
+
+=== CONVERSATION HISTORY (last 3 exchanges) ===
+{recent_history if recent_history else "This is the first answer."}
+
+=== CURRENT QUESTION ===
 Question: {question['question']}
-Question Type: {question['type']}
+Question Type: {question_type}
 Ideal Answer Should Cover: {', '.join(ideal_points)}
 
-Candidate's Answer: "{candidate_answer}"
+=== CANDIDATE'S ANSWER ===
+"{candidate_answer}"
 
-Evaluate this answer and return ONLY a JSON object:
+{star_note}
+
+=== EVALUATION RULES (STRICT) ===
+
+1. ANSWER QUALITY GATE:
+   - If answer is less than 20 words OR completely irrelevant to the question → set overall_score below 4, set probe_deeper=true
+   - If answer says "I don't know", "I haven't done that", or dodges → do NOT just move on. Probe with a simpler version or ask them to reason through it.
+
+2. STT ARTIFACT DETECTION:
+   - If the answer contains likely speech-to-text errors (nonsensical words, wrong tech names like "Mac or Lyft" instead of "Matplotlib", "login" instead of "logging") → note it in improvements and ask for clarification in probe_question.
+
+3. PUSHBACK ENFORCEMENT:
+   - Do NOT be overly polite and move on from weak answers.
+   - If depth score < 5 → probe_deeper must be true.
+   - If answer is vague (no specific examples, no metrics, no technical details) → probe_deeper=true.
+
+4. FOLLOW-UP LOGIC:
+   - probe_question should be a SPECIFIC follow-up, not generic.
+   - Bad: "Can you elaborate?" 
+   - Good: "You mentioned using FastAPI — how did you handle authentication in that project?"
+
+5. CONTEXT AWARENESS:
+   - Use conversation history above to avoid repeating questions already asked.
+   - If candidate already answered a sub-topic, probe a different angle.
+
+Return ONLY a JSON object:
 {{
   "scores": {{
-    "relevance": <0-10, how relevant to the question>,
-    "depth": <0-10, technical/conceptual depth>,
-    "communication": <0-10, clarity and structure>,
-    "confidence": <0-10, based on language used>
+    "relevance": <0-10>,
+    "depth": <0-10>,
+    "communication": <0-10>,
+    "confidence": <0-10>
   }},
   "overall_score": <weighted average 0-10>,
   "strengths": ["strength1", "strength2"],
   "improvements": ["improvement1", "improvement2"],
-  "interviewer_response": "<natural conversational response from the interviewer — acknowledge their answer briefly, give subtle feedback if needed, transition naturally. 2-3 sentences max. Sound human and professional.>",
-  "probe_deeper": <true if answer needs elaboration, false if complete>,
-  "probe_question": "<follow-up question to probe deeper, or null>"
+  "interviewer_response": "<2-3 sentence response. If answer is weak, respectfully push back. Do NOT just say 'Great answer!' for poor responses. Sound human and professional.>",
+  "probe_deeper": <true/false>,
+  "probe_question": "<specific follow-up question, or null if answer was complete>"
 }}
 
 Return ONLY the JSON.
@@ -141,7 +192,7 @@ Return ONLY the JSON.
     response = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=600,
+        max_tokens=700,
         temperature=0.3,
     )
 
@@ -157,11 +208,10 @@ Return ONLY the JSON.
             "overall_score": 5,
             "strengths": ["Provided an answer"],
             "improvements": ["Could elaborate more"],
-            "interviewer_response": "Thank you for that response. Let's move on to the next question.",
-            "probe_deeper": False,
-            "probe_question": None
+            "interviewer_response": "Thank you for that response. Could you elaborate a bit more on that?",
+            "probe_deeper": True,
+            "probe_question": "Can you walk me through a specific example?"
         }
-
 
 def generate_final_report(
     resume_data: dict,
