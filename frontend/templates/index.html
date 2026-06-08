@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InterviewAI — Your AI Mock Interview Partner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 1: LANDING / UPLOAD
+═══════════════════════════════════════════════ -->
+<div id="screen-upload" class="screen active">
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <header class="top-bar">
+    <div class="logo">
+      <span class="logo-mark">◆</span>
+      <span class="logo-text">InterviewAI</span>
+    </div>
+    <div class="logo-sub">Powered by Groq + Deepgram</div>
+  </header>
+
+  <main class="upload-main">
+    <div class="hero-text">
+      <div class="badge">AI Mock Interview Platform</div>
+      <h1>Land Your<br/><span class="gradient-text">Dream Job</span></h1>
+      <p class="hero-sub">Upload your resume. Our AI analyzes it and conducts a personalized voice interview — technical, behavioral, situational. Get scored and coached.</p>
+    </div>
+
+    <div class="upload-card" id="upload-card">
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="resume-input" accept=".pdf,.docx,.txt" hidden/>
+        <div class="upload-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <path d="M24 8L24 32M24 8L16 16M24 8L32 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 36H40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M8 36V40H40V36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="upload-label">Drop your resume here</p>
+        <p class="upload-sub">PDF, DOCX, or TXT · Max 5MB</p>
+        <button class="btn-upload" onclick="document.getElementById('resume-input').click()">Choose File</button>
+      </div>
+
+      <div class="upload-file-info" id="file-info" style="display:none">
+        <div class="file-icon">📄</div>
+        <div class="file-details">
+          <span class="file-name" id="file-name-display"></span>
+          <span class="file-size" id="file-size-display"></span>
+        </div>
+        <button class="btn-remove" onclick="clearFile()">✕</button>
+      </div>
+
+      <button class="btn-primary" id="btn-analyze" onclick="uploadResume()" style="display:none">
+        <span class="btn-text">Analyze Resume & Start</span>
+        <span class="btn-arrow">→</span>
+      </button>
+
+      <div class="upload-loader" id="upload-loader" style="display:none">
+        <div class="loader-ring"></div>
+        <p class="loader-text" id="loader-text">Parsing your resume...</p>
+      </div>
+    </div>
+
+    <div class="features-row">
+      <div class="feature-pill">
+        <span class="f-icon">🎤</span>
+        <span>Voice Interviews</span>
+      </div>
+      <div class="feature-pill">
+        <span class="f-icon">🧠</span>
+        <span>Llama 3.3 70B</span>
+      </div>
+      <div class="feature-pill">
+        <span class="f-icon">📊</span>
+        <span>Real Scoring</span>
+      </div>
+      <div class="feature-pill">
+        <span class="f-icon">💬</span>
+        <span>Ask Your Resume</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 2: READY / RESUME PARSED
+═══════════════════════════════════════════════ -->
+<div id="screen-ready" class="screen">
+  <div class="bg-grid"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="ready-container">
+    <div class="ready-header">
+      <div class="check-anim">✓</div>
+      <h2>Resume Analyzed!</h2>
+      <p class="ready-sub">Ready for your personalized mock interview</p>
+    </div>
+
+    <div class="resume-summary" id="resume-summary">
+      <div class="rs-name" id="rs-name"></div>
+      <div class="rs-row">
+        <div class="rs-box">
+          <div class="rs-label">Skills Detected</div>
+          <div class="rs-chips" id="rs-skills"></div>
+        </div>
+        <div class="rs-box">
+          <div class="rs-label">Focus Areas</div>
+          <div class="rs-chips" id="rs-focus"></div>
+        </div>
+      </div>
+      <div class="rs-stat">
+        <span class="rs-num" id="rs-qcount"></span>
+        <span class="rs-label-sm">personalized questions prepared</span>
+      </div>
+    </div>
+
+    <div class="mode-selector">
+      <div class="mode-label">Choose your interview mode:</div>
+      <div class="mode-cards">
+        <div class="mode-card active" id="mode-voice" onclick="selectMode('voice')">
+          <div class="mode-icon">🎤</div>
+          <div class="mode-title">Voice Interview</div>
+          <div class="mode-desc">Speak your answers naturally. AI transcribes and evaluates in real-time.</div>
+        </div>
+        <div class="mode-card" id="mode-text" onclick="selectMode('text')">
+          <div class="mode-icon">⌨️</div>
+          <div class="mode-title">Text Interview</div>
+          <div class="mode-desc">Type your answers. Good for practicing written communication.</div>
+        </div>
+        <div class="mode-card" id="mode-qa" onclick="selectMode('qa')">
+          <div class="mode-icon">💬</div>
+          <div class="mode-title">Ask Your Resume</div>
+          <div class="mode-desc">Chat with AI about your resume — get insights and advice.</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary large" onclick="startSession()">
+      <span class="btn-text">Begin Interview</span>
+      <span class="btn-arrow">→</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 3: INTERVIEW
+═══════════════════════════════════════════════ -->
+<div id="screen-interview" class="screen">
+  <div class="interview-layout">
+
+    <!-- Left sidebar -->
+    <div class="interview-sidebar">
+      <div class="logo small">
+        <span class="logo-mark">◆</span>
+        <span class="logo-text">InterviewAI</span>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-label">Progress</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-text" id="progress-text">0 / 10</div>
+      </div>
+
+      <div class="score-board">
+        <div class="score-label">Running Score</div>
+        <div class="score-value" id="running-score">—</div>
+        <div class="score-sub">/10</div>
+      </div>
+
+      <div class="question-type-badge" id="qtype-badge">
+        <span id="qtype-text">—</span>
+      </div>
+
+      <div class="focus-area-box">
+        <div class="fa-label">Focus Area</div>
+        <div class="fa-value" id="fa-value">—</div>
+      </div>
+
+      <button class="btn-end-interview" onclick="endInterviewEarly()">End & Get Report</button>
+    </div>
+
+    <!-- Main chat area -->
+    <div class="interview-main">
+      <div class="chat-messages" id="chat-messages">
+        <!-- Messages injected here -->
+      </div>
+
+      <!-- Input area -->
+      <div class="chat-input-area" id="chat-input-area">
+
+        <!-- Voice controls -->
+        <div class="voice-controls" id="voice-controls" style="display:none">
+          <div class="voice-visualizer" id="voice-viz">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div>
+          </div>
+          <button class="btn-mic" id="btn-mic" onclick="toggleRecording()">
+            <span class="mic-icon" id="mic-icon">🎤</span>
+            <span class="mic-label" id="mic-label">Hold to Speak</span>
+          </button>
+          <div class="voice-status" id="voice-status">Press and hold the mic button to record your answer</div>
+          
+          <!-- Transcription preview -->
+          <div class="transcript-preview" id="transcript-preview" style="display:none">
+            <div class="tp-label">Transcribed:</div>
+            <div class="tp-text" id="tp-text"></div>
+            <button class="btn-send-transcript" onclick="sendTranscript()">Send Answer →</button>
+          </div>
+        </div>
+
+        <!-- Text input -->
+        <div class="text-controls" id="text-controls" style="display:none">
+          <textarea 
+            id="text-answer" 
+            class="answer-textarea" 
+            placeholder="Type your answer here... Be specific, use examples from your experience."
+            rows="4"
+          ></textarea>
+          <div class="text-actions">
+            <span class="char-count" id="char-count">0 characters</span>
+            <button class="btn-primary" onclick="sendTextAnswer()">
+              <span>Submit Answer</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right evaluation panel -->
+    <div class="eval-panel" id="eval-panel">
+      <div class="ep-title">Last Answer</div>
+      <div class="ep-score-ring">
+        <svg viewBox="0 0 80 80" class="score-ring-svg">
+          <circle cx="40" cy="40" r="32" class="ring-bg"/>
+          <circle cx="40" cy="40" r="32" class="ring-fill" id="ring-fill" style="stroke-dasharray: 0 201"/>
+        </svg>
+        <div class="ep-score-num" id="ep-score">—</div>
+      </div>
+      <div class="ep-sections">
+        <div class="ep-section strengths">
+          <div class="ep-sec-title">✓ Strengths</div>
+          <ul id="ep-strengths"><li class="ep-empty">—</li></ul>
+        </div>
+        <div class="ep-section improvements">
+          <div class="ep-sec-title">↑ Improve</div>
+          <ul id="ep-improvements"><li class="ep-empty">—</li></ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 4: REPORT
+═══════════════════════════════════════════════ -->
+<div id="screen-report" class="screen">
+  <div class="bg-grid"></div>
+  <div class="orb orb-1"></div>
+
+  <div class="report-container">
+    <div class="report-header">
+      <div class="report-logo">
+        <span class="logo-mark">◆</span>
+        <span>InterviewAI Report</span>
+      </div>
+      <div class="report-candidate" id="report-name"></div>
+    </div>
+
+    <div class="report-hero">
+      <div class="report-score-circle">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" class="rc-bg"/>
+          <circle cx="60" cy="60" r="50" class="rc-fill" id="rc-fill" style="stroke-dasharray: 0 314"/>
+        </svg>
+        <div class="rsc-inner">
+          <div class="rsc-score" id="rsc-score">0</div>
+          <div class="rsc-label">/ 10</div>
+        </div>
+      </div>
+      <div class="report-verdict">
+        <div class="report-grade" id="report-grade">—</div>
+        <div class="report-hire" id="report-hire">—</div>
+        <p class="report-exec" id="report-exec"></p>
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="rg-card">
+        <div class="rg-title">Category Scores</div>
+        <div class="category-bars" id="category-bars"></div>
+      </div>
+
+      <div class="rg-card">
+        <div class="rg-title">Top Strengths</div>
+        <ul class="report-list green" id="report-strengths"></ul>
+      </div>
+
+      <div class="rg-card">
+        <div class="rg-title">Areas to Improve</div>
+        <ul class="report-list yellow" id="report-improvements"></ul>
+      </div>
+
+      <div class="rg-card full">
+        <div class="rg-title">Detailed Feedback</div>
+        <p class="report-feedback" id="report-feedback"></p>
+      </div>
+
+      <div class="rg-card">
+        <div class="rg-title">Next Steps</div>
+        <ul class="report-list blue" id="report-nextsteps"></ul>
+      </div>
+
+      <div class="rg-card">
+        <div class="rg-title">Study Resources</div>
+        <ul class="report-list purple" id="report-resources"></ul>
+      </div>
+
+      <div class="rg-card full">
+        <div class="rg-title">Q&A Review</div>
+        <div class="qa-review" id="qa-review"></div>
+      </div>
+    </div>
+
+    <div class="report-actions">
+      <button class="btn-primary" onclick="startOver()">
+        <span>New Interview</span>
+        <span>→</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 5: QA CHAT
+═══════════════════════════════════════════════ -->
+<div id="screen-qa" class="screen">
+  <div class="qa-layout">
+    <div class="qa-header">
+      <button class="btn-back" onclick="goBack()">← Back</button>
+      <div class="qa-title">
+        <span class="logo-mark">◆</span>
+        Ask Your Resume
+      </div>
+      <div class="qa-sub">Ask anything about your resume — get honest AI insights</div>
+    </div>
+
+    <div class="qa-chat" id="qa-chat">
+      <div class="qa-msg ai">
+        <div class="qa-avatar">AI</div>
+        <div class="qa-bubble">Hi! I've analyzed your resume thoroughly. Ask me anything — about your strengths, gaps, how to position yourself, what to highlight for specific roles, or anything else!</div>
+      </div>
+    </div>
+
+    <div class="qa-input-row">
+      <input 
+        type="text" 
+        id="qa-input" 
+        class="qa-input" 
+        placeholder="Ask anything about your resume..."
+        onkeypress="if(event.key==='Enter') sendQAMessage()"
+      />
+      <button class="btn-send" onclick="sendQAMessage()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
